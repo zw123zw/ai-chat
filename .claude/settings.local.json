@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(rm -rf node_modules package-lock.json)",
+      "Bash(yarn install:*)",
+      "Bash(cd:*)",
+      "Bash(npx vue-tsc:*)",
+      "Bash(yarn add:*)",
+      "Bash(npx vite:*)",
+      "Bash(mkdir -p src/store/modules)",
+      "Bash(rm -rf src/stores)",
+      "WebSearch",
+      "Bash(yarn remove:*)",
+      "Bash(grep -i \"Outlined.js$\")",
+      "Bash(npm run:*)",
+      "WebFetch(domain:docs.bigmodel.cn)",
+      "Bash(npm uninstall:*)",
+      "Read(//d E:/code/**)",
+      "Bash(npx eslint:*)",
+      "Bash(git -C \"E:\\\\code\\\\cowboyclaw\" diff HEAD src/store/modules/chat.ts)",
+      "Bash(yarn upgrade-interactive:*)",
+      "Bash(yarn upgrade:*)",
+      "Bash(npx npm-check-updates:*)"
+    ]
+  }
+}

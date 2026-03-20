@@ -1,0 +1,778 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import './variables.less';
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: @bg-color;
+  color: @text-color;
+}
+
+// ==================== Ant Design 暗色主题覆盖 ====================
+// 输入框
+.ant-input,
+.ant-input-affix-wrapper,
+textarea.ant-input {
+  color: @text-color;
+  background-color: @input-color;
+  border-color: @border-color;
+
+  &::placeholder {
+    color: @muted-color;
+  }
+
+  &:hover,
+  &:focus,
+  &-focused {
+    border-color: @primary-color;
+  }
+
+  &-disabled,
+  &[disabled] {
+    color: @disabled-color;
+    background-color: @input-color;
+  }
+}
+
+// 按钮
+.ant-btn {
+  color: @text-color;
+
+  &-primary {
+    color: #fff;
+
+    &:disabled,
+    &[disabled] {
+      color: rgba(255, 255, 255, 0.4);
+      background-color: var(--primary-fade-40);
+      border-color: transparent;
+    }
+  }
+
+  &-text {
+    color: @muted-color;
+
+    &:hover {
+      color: @text-color;
+      background-color: var(--hover-bg);
+    }
+  }
+
+  &-primary.ant-btn-dangerous {
+    color: #fff;
+  }
+}
+
+// Tabs
+.ant-tabs {
+  color: @text-color;
+
+  .ant-tabs-tab {
+    color: @muted-color;
+
+    &-active .ant-tabs-tab-btn {
+      color: @primary-color;
+    }
+
+    &:hover .ant-tabs-tab-btn {
+      color: @primary-hover;
+    }
+  }
+
+  .ant-tabs-ink-bar {
+    background: @primary-color;
+  }
+}
+
+// Spin
+.ant-spin-dot-item {
+  background-color: @primary-color;
+}
+
+// Empty
+.ant-empty-description {
+  color: @muted-color;
+}
+
+// Select
+.ant-select {
+  color: @text-color;
+
+  .ant-select-selector {
+    background-color: transparent;
+    border-color: @border-color;
+    color: @text-color;
+  }
+
+  .ant-select-arrow {
+    color: @muted-color;
+  }
+
+  &-borderless .ant-select-selector {
+    background-color: transparent;
+  }
+}
+
+// Model Dropdown
+.model-select-btn {
+  display: flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: @muted-color;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  max-width: 180px;
+
+  &:hover {
+    color: @text-color;
+    background-color: var(--hover-bg);
+  }
+}
+
+.model-select-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-menu {
+  background-color: @sidebar-color;
+  border: 1px solid @border-color;
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: @shadow-lg;
+  min-width: 180px;
+  max-width: 280px;
+}
+
+.model-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: @text-color;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: var(--hover-bg);
+  }
+
+  &-active {
+    color: @primary-color;
+    background-color: var(--primary-fade-12);
+  }
+
+  &-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  &-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: @muted-color;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      color: @primary-color;
+      background-color: var(--hover-bg-strong);
+    }
+
+    &-danger:hover {
+      color: @error-color;
+    }
+  }
+
+  &:hover &-actions {
+    opacity: 1;
+  }
+
+  &-add {
+    color: @muted-color;
+    gap: 6px;
+    justify-content: flex-start;
+
+    &:hover {
+      color: @primary-color;
+    }
+  }
+}
+
+.model-menu-divider {
+  height: 1px;
+  background-color: @border-color;
+  margin: 4px 0;
+}
+
+// Tag
+.ant-tag {
+  color: @text-color;
+  background-color: @input-color;
+  border-color: @border-color;
+
+  .ant-tag-close-icon {
+    color: @muted-color;
+
+    &:hover {
+      color: @text-color;
+    }
+  }
+}
+
+// 附件上传菜单
+.attach-menu {
+  background-color: @sidebar-color;
+  border: 1px solid @border-color;
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: @shadow-lg;
+
+  .ant-upload-wrapper {
+    display: block;
+  }
+}
+
+.attach-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: @text-color;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+
+  &:hover {
+    background-color: var(--hover-bg);
+  }
+}
+
+// Dropdown
+.ant-dropdown {
+  .ant-dropdown-menu {
+    background-color: @sidebar-color;
+    border: 1px solid @border-color;
+    box-shadow: @shadow-lg;
+
+    .ant-dropdown-menu-item {
+      color: @text-color;
+
+      &:hover {
+        background-color: var(--hover-bg);
+      }
+    }
+  }
+}
+
+// ==================== 主题切换开关 ====================
+.theme-switch {
+  &.ant-switch {
+    background-color: #585b70;
+
+    &-checked {
+      background-color: @primary-color;
+    }
+  }
+}
+
+// ==================== ChatInput 输入区 ====================
+.chat-input-card {
+  background-color: @input-color;
+  border: 1px solid @border-color;
+  border-radius: 16px;
+  overflow: hidden;
+  transition: border-color @transition-duration, box-shadow @transition-duration;
+  box-shadow: var(--shadow-base);
+
+  &:focus-within {
+    border-color: @primary-color;
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+.chat-textarea {
+  &.ant-input {
+    padding: 14px 16px 8px;
+    background: transparent;
+    color: @text-color;
+    font-size: 14px;
+    line-height: 1.6;
+    resize: none;
+    border: none;
+    box-shadow: none;
+
+    &::placeholder {
+      color: @muted-color;
+    }
+
+    &:focus,
+    &-focused {
+      box-shadow: none;
+      border: none;
+    }
+
+    &:disabled {
+      color: @disabled-color;
+      background: transparent;
+    }
+  }
+}
+
+.chat-toolbar {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  gap: 2px;
+}
+
+.toolbar-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: @muted-color;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    color: @text-color;
+    background-color: var(--hover-bg-strong);
+  }
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 16px;
+  background-color: @border-color;
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+.skill-chips {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.skill-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: @muted-color;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    color: @text-color;
+    background-color: var(--hover-bg-strong);
+  }
+
+  &-active {
+    color: @primary-color;
+    background-color: var(--primary-fade-12);
+  }
+}
+
+.send-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background-color: @disabled-color;
+  color: @bg-color;
+  font-size: 16px;
+  cursor: not-allowed;
+  transition: all 0.2s;
+  flex-shrink: 0;
+
+  &-active {
+    background-color: @primary-color;
+    color: #fff;
+    cursor: pointer;
+
+    &:hover {
+      background-color: @primary-hover;
+    }
+  }
+
+  &-stop {
+    background-color: @error-color;
+    color: #fff;
+    cursor: pointer;
+
+    &:hover {
+      opacity: 0.85;
+    }
+  }
+}
+
+// 消息复制按钮
+.msg-copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: @muted-color;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    color: @text-color;
+    background-color: var(--hover-bg-strong);
+  }
+
+  &-copied {
+    color: @success-color;
+
+    &:hover {
+      color: @success-color;
+    }
+  }
+}
+
+// 消息中的附件展示
+.msg-attachments {
+  margin-bottom: 6px;
+}
+
+.msg-attach-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.msg-attach-img {
+  max-width: 200px;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.msg-attach-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.msg-attach-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background-color: var(--hover-bg-text);
+  border-radius: 8px;
+  max-width: 220px;
+}
+
+.msg-attach-file-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.msg-attach-file-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.msg-attach-file-name {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.msg-attach-file-size {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+// 附件预览
+.attachment-preview {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 28px 6px 6px;
+  background-color: var(--hover-bg);
+  border-radius: 8px;
+  max-width: 200px;
+}
+
+.attachment-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.attachment-file {
+  .flex-center();
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  background-color: @border-color;
+  color: @muted-color;
+  flex-shrink: 0;
+}
+
+.attachment-name {
+  font-size: 12px;
+  color: @text-color;
+  .text-ellipsis();
+}
+
+.attachment-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: @error-color;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: @border-color;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+.markdown-body {
+  line-height: 1.6;
+
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 0.5em 0;
+  }
+
+  p {
+    margin-bottom: 0.5em;
+  }
+
+  code {
+    background-color: var(--inline-code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-family: 'Fira Code', 'Consolas', monospace;
+  }
+
+  pre {
+    margin: 1em 0;
+    border-radius: 8px;
+    overflow: hidden;
+
+    code {
+      background-color: transparent;
+      padding: 0;
+      border-radius: 0;
+    }
+  }
+
+  ul, ol {
+    padding-left: 1.5em;
+    margin-bottom: 0.5em;
+  }
+
+  blockquote {
+    border-left: 4px solid @primary-color;
+    padding-left: 1em;
+    margin: 0.5em 0;
+    color: @muted-color;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.5em 0;
+    font-size: 0.9em;
+
+    th, td {
+      border: 1px solid @border-color;
+      padding: 8px 12px;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      background-color: var(--hover-bg-strong);
+      font-weight: 600;
+      color: @text-color;
+    }
+
+    tr:nth-child(even) td {
+      background-color: var(--overlay-light);
+    }
+
+    tr:hover td {
+      background-color: var(--hover-bg);
+    }
+  }
+}
+
+// 代码块包裹器（复制按钮 + 语言标签）
+.code-block-wrapper {
+  position: relative;
+  margin: 1em 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: var(--code-bg);
+  width: 100%;
+
+  .code-block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    background-color: var(--code-header-bg);
+    border-bottom: 1px solid var(--code-header-border);
+  }
+
+  .code-block-lang {
+    font-size: 12px;
+    color: var(--code-text);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    user-select: none;
+  }
+
+  .code-copy-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--code-text);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background-color: var(--code-copy-hover);
+      color: var(--code-text-hover);
+    }
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  pre.hljs {
+    margin: 0;
+    border-radius: 0;
+    padding: 12px 16px;
+    overflow-x: auto;
+  }
+}
+
+// 打字机光标
+.typed-cursor {
+  display: inline-block;
+  width: 0.2em;
+  height: 1em;
+  background-color: @primary-color;
+  margin-left: 2px;
+  vertical-align: middle;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
