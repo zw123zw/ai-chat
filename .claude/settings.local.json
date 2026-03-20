@@ -22,7 +22,16 @@
       "Bash(git -C \"E:\\\\code\\\\cowboyclaw\" diff HEAD src/store/modules/chat.ts)",
       "Bash(yarn upgrade-interactive:*)",
       "Bash(yarn upgrade:*)",
-      "Bash(npx npm-check-updates:*)"
+      "Bash(npx npm-check-updates:*)",
+      "Bash(git checkout:*)",
+      "Bash(git push:*)",
+      "Bash(yarn config:*)",
+      "Bash(if [ -d \"node_modules\" ]; then echo \"node_modules exists\"; ls -la node_modules | head -20; else echo \"node_modules not found\"; fi)",
+      "Bash(mkdir -p .claude/skills/ai-chat-patterns)",
+      "Bash(mkdir -p .claude/skills/skill-generator)",
+      "Bash(rm .claude/skills/ai-chat-patterns.md)",
+      "Bash(rm .claude/skills/skill-generator.md)",
+      "Bash(git add:*)"
     ]
   }
 }

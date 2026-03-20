@@ -1,0 +1,41 @@
+---
+id: ai-chat-pinia-pattern
+trigger: "when creating or modifying Pinia stores in this project"
+confidence: 0.9
+domain: typescript
+source: local-repo-analysis
+---
+
+# Pinia Store Pattern
+
+## Action
+Follow this Pinia store pattern:
+1. Define a separate State interface
+2. Use UPPER_SNAKE_CASE for action names
+3. Use immutable updates with spread operators
+4. Use persist config for localStorage persistence
+
+## Evidence
+- Analyzed `src/store/modules/chat.ts`
+- Pattern consistently applied
+
+## Example
+```typescript
+interface ChatState {
+  conversations: Conversation[];
+  currentConversationId: string | null;
+}
+
+export const useChatStore = defineStore("chat", {
+  state: (): ChatState => ({...}),
+  getters: {...},
+  actions: {
+    CREATE_CONVERSATION(title = "新对话"): string {...},
+  },
+  persist: {
+    key: "chatStore",
+    paths: ["conversations", "currentConversationId"],
+    storage: window.localStorage,
+  },
+});
+```

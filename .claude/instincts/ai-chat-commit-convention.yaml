@@ -1,0 +1,20 @@
+---
+id: ai-chat-commit-convention
+trigger: "when writing a commit message for this project"
+confidence: 0.7
+domain: git
+source: local-repo-analysis
+---
+
+# Use Chinese Commit Messages
+
+## Action
+Write commit messages in Chinese for this project.
+
+## Evidence
+- Analyzed 2 commits
+- 100% follow Chinese commit format
+
+## Examples
+- `项目搭建` - Project setup
+- `增加git忽略文件` - Add gitignore file
