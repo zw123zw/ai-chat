@@ -31,7 +31,8 @@
       "Bash(mkdir -p .claude/skills/skill-generator)",
       "Bash(rm .claude/skills/ai-chat-patterns.md)",
       "Bash(rm .claude/skills/skill-generator.md)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
