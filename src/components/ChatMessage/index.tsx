@@ -73,7 +73,7 @@ export default defineComponent({
     )
 
     // 创建打字机实例（不需要 containerRef，直接返回渲染的 HTML）
-    const { setText, finish, stop, isFinished, renderedHTML } = useTypewriter({
+    const { setText, stop, renderedHTML } = useTypewriter({
       speed: 120,
       cursorChar: '▍',
       onComplete: () => {

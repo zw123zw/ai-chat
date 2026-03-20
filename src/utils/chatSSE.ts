@@ -94,12 +94,17 @@ async function fetchChatFallback(
   try {
     message.info("SSE 连接失败，正在尝试普通请求模式");
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     const response = await fetch(url, {
       method: "POST",
       headers,
       body: JSON.stringify(body),
-      timeout: 30000,
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => response.statusText);
@@ -187,21 +192,6 @@ export const chatSSE = (
       headers,
       signal,
       body: JSON.stringify(baseBody),
-      retryDelay: retryDelay,
-      // 禁用 fetchEventSource 内部重试
-      shouldRetry: (err) => {
-        // 网络错误不重试
-        const isNetworkError =
-          err?.message?.includes("Failed to fetch") ||
-          err?.message?.includes("NetworkError") ||
-          err?.message?.includes("fetch failed") ||
-          err?.message?.includes("ERR_NETWORK") ||
-          err?.message?.includes("ECONNREFUSED") ||
-          err?.message?.includes("ETIMEDOUT") ||
-          err?.message?.includes("getaddrinfo") ||
-          err?.message?.includes("ENOTFOUND");
-        return !isNetworkError && false;
-      },
       onmessage: (event) => {
         if (aborted || isDone) return;
 
@@ -217,7 +207,7 @@ export const chatSSE = (
           onUpdate(accumulatedText);
         }
       },
-      onerror: (err: unknown) => {
+      onerror: (err) => {
         if (aborted || isDone) return;
 
         const error = err as Error;
@@ -254,7 +244,7 @@ export const chatSSE = (
           finish(true);
         }
       },
-      onopen: (response) => {
+      onopen: async (response) => {
         if (response.status !== 200) {
           // 新增：非200状态码直接触发重试，不再让内部逻辑处理
           currentController?.abort();
