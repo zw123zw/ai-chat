@@ -36,7 +36,7 @@ export default defineConfig({
     
     // 🔴 关键修改2：优化打包产物路径（可选，增强兼容性）
     assetsDir: 'assets', // 静态资源输出目录（默认就是 assets，显式声明更清晰）
-    outDir: 'dist',      // 打包输出目录（默认 dist）
+    outDir: 'docs',      // 打包输出目录（默认 dist）
     rollupOptions: {
       // 确保静态资源路径解析正确
       output: {
