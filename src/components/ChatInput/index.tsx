@@ -4,6 +4,7 @@ import {
   PictureOutlined,
   FileTextOutlined,
   SendOutlined,
+  PauseCircleOutlined,
 } from "@ant-design/icons-vue";
 import type { ChatAttachment } from "@/types/chat";
 
@@ -27,7 +28,6 @@ export default defineComponent({
   setup(props, { emit }) {
     const inputValue = ref("");
     const attachments = ref<ChatAttachment[]>([]);
-    const maxLength = 200;
 
     onUnmounted(() => {
       attachments.value.forEach((a) => {
@@ -99,7 +99,6 @@ export default defineComponent({
               bordered={false}
               class="new-chat-textarea"
               disabled={props.loading}
-              maxlength={maxLength}
             />
 
             {/* 工具栏 */}
@@ -138,22 +137,34 @@ export default defineComponent({
 
               <div class="flex items-center gap-3">
                 <span class="text-sm text-gray-400 dark:text-gray-500">
-                  {currentLength.value}/{maxLength}
+                  {currentLength.value}
                 </span>
-                <Button
-                  type="primary"
-                  shape="circle"
-                  size="large"
-                  icon={props.loading ? <div class="animate-spin">⏸</div> : <SendOutlined />}
-                  onClick={props.loading ? () => emit("stop") : handleSend}
-                  disabled={!canSend.value}
-                  class={[
-                    "w-10 h-10 flex items-center justify-center transition-all duration-200",
-                    canSend.value
-                      ? "bg-blue-600 hover:bg-blue-700 border-0"
-                      : "bg-blue-200 dark:bg-blue-900/50 border-0 cursor-not-allowed",
-                  ]}
-                />
+                {props.loading ? (
+                  <Button
+                    type="primary"
+                    danger
+                    shape="circle"
+                    size="large"
+                    icon={<PauseCircleOutlined />}
+                    onClick={() => emit("stop")}
+                    class="w-10 h-10 flex items-center justify-center"
+                  />
+                ) : (
+                  <Button
+                    type="primary"
+                    shape="circle"
+                    size="large"
+                    icon={<SendOutlined />}
+                    onClick={handleSend}
+                    disabled={!canSend.value}
+                    class={[
+                      "w-10 h-10 flex items-center justify-center transition-all duration-200",
+                      canSend.value
+                        ? "bg-blue-600 hover:bg-blue-700 border-0"
+                        : "bg-blue-200 dark:bg-blue-900/50 border-0 cursor-not-allowed",
+                    ]}
+                  />
+                )}
               </div>
             </div>
           </div>
