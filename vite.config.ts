@@ -3,11 +3,13 @@ import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import { resolve } from 'path'
 
-// 👇 可选：根据部署环境动态设置 base 路径（推荐）
-// 本地预览/部署到根路径：'./'；GitHub Pages 项目子页面：'/你的仓库名/'
+// 👇根据部署环境动态设置 base 路径（推荐）
+// 仓库名：ai-chat（必须和 GitHub 仓库名完全一致）
+const REPO_NAME = 'ai-chat'
+// 开发环境：根路径 /；生产环境：/仓库名/（适配 GitHub Pages 子页面）
 const BASE_URL = process.env.NODE_ENV === 'production' 
-  ? './'  // 生产环境用相对路径（适配本地预览/GitHub Pages）
-  : '/'   // 开发环境用根路径（不影响本地开发）
+  ? `/${REPO_NAME}/`  // 生产环境：/ai-chat/（解决 404 核心）
+  : '/'               // 开发环境：根路径，不影响本地开发
 
 export default defineConfig({
   plugins: [vue(), vueJsx()],
