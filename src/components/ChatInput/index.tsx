@@ -1,18 +1,86 @@
 import { defineComponent, ref, computed, onUnmounted } from "vue";
-import { Button, Textarea, Upload } from "ant-design-vue";
+import { Button, Textarea, Upload, Modal, Tooltip } from "ant-design-vue";
 import {
   PictureOutlined,
   FileTextOutlined,
   SendOutlined,
   PauseCircleOutlined,
+  CloseOutlined,
+  FileOutlined,
+  FolderOutlined,
+  CodeOutlined,
+  FilePdfOutlined,
+  FileWordOutlined,
+  FileExcelOutlined,
+  EyeOutlined,
 } from "@ant-design/icons-vue";
 import type { ChatAttachment } from "@/types/chat";
+import { nanoid } from "@/utils/id";
+
+// 文本/代码文件扩展名列表
+const TEXT_EXTENSIONS = new Set([
+  ".txt", ".md", ".markdown", ".rst", ".csv", ".tsv", ".json", ".jsonl",
+  ".xml", ".html", ".htm", ".css", ".scss", ".sass", ".less", ".styl",
+  ".js", ".jsx", ".ts", ".tsx", ".vue", ".svelte",
+  ".py", ".pyw", ".ipynb", ".r", ".rkt", ".rs", ".go",
+  ".java", ".kt", ".kts", ".scala", ".groovy", ".gradle",
+  ".c", ".cpp", ".cc", ".cxx", ".h", ".hpp", ".hxx",
+  ".cs", ".fs", ".fsx", ".vb",
+  ".php", ".phtml", ".php3", ".php4", ".php5", ".phps",
+  ".rb", ".rake", ".erb", ".jbuilder",
+  ".swift", ".m", ".mm",
+  ".go", ".mod", ".sum",
+  ".sql", ".ps1", ".bat", ".cmd", ".sh", ".bash", ".zsh", ".fish",
+  ".yaml", ".yml", ".toml", ".ini", ".cfg", ".conf", ".config",
+  ".log", ".env", ".env.local", ".env.development", ".env.production",
+  ".gitignore", ".dockerignore",
+  ".proto", ".thrift", ".avsc",
+  ".graphql", ".gql",
+  ".vim", ".vimrc",
+  ".tex", ".latex", ".bib",
+]);
+
+// 判断是否是文本/代码文件
+function isTextFile(filename: string): boolean {
+  const ext = filename.toLowerCase().substring(filename.lastIndexOf('.'));
+  if (TEXT_EXTENSIONS.has(ext)) return true;
+  // 无扩展名的文件也假设是文本
+  if (!filename.includes('.')) return true;
+  return false;
+}
+
+// 获取文件图标
+function getFileIcon(type: string, name: string) {
+  if (type.startsWith("image/")) return <PictureOutlined />;
+  const lowerName = name.toLowerCase();
+  if (lowerName.endsWith('.pdf')) return <FilePdfOutlined />;
+  if (lowerName.endsWith('.doc') || lowerName.endsWith('.docx')) return <FileWordOutlined />;
+  if (lowerName.endsWith('.xls') || lowerName.endsWith('.xlsx') ||
+      lowerName.endsWith('.csv')) return <FileExcelOutlined />;
+  if (isTextFile(name)) return <CodeOutlined />;
+  return <FileOutlined />;
+}
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
     reader.readAsDataURL(file);
+  });
+}
+
+function readFileAsText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsText(file);
   });
 }
 
@@ -28,6 +96,11 @@ export default defineComponent({
   setup(props, { emit }) {
     const inputValue = ref("");
     const attachments = ref<ChatAttachment[]>([]);
+    const previewImageVisible = ref(false);
+    const previewImageUrl = ref("");
+    const previewFileVisible = ref(false);
+    const previewFileContent = ref("");
+    const previewFileName = ref("");
 
     onUnmounted(() => {
       attachments.value.forEach((a) => {
@@ -69,27 +142,214 @@ export default defineComponent({
       }
     }
 
-    function handleBeforeUpload(file: File) {
+    async function processFile(file: File, relativePath?: string) {
+      const isDir = (file as any).webkitRelativePath || relativePath || file.name;
+      const pathParts = isDir.split('/');
+      const name = pathParts[pathParts.length - 1];
+      const actualRelativePath = pathParts.length > 1 ? pathParts.slice(0, -1).join('/') : undefined;
+
       const attachment: ChatAttachment = {
-        name: file.name,
+        id: nanoid(),
+        name,
         size: file.size,
         type: file.type,
+        relativePath: actualRelativePath,
+        uploadStatus: "pending",
+        sendAsText: isTextFile(name),
+        contentLoaded: false,
       };
+
       if (file.type.startsWith("image/")) {
-        readFileAsDataUrl(file).then((url) => {
+        try {
+          const url = await readFileAsDataUrl(file);
           attachment.url = url;
-          attachments.value = [...attachments.value, attachment];
-        });
+          attachment.uploadStatus = "success";
+        } catch {
+          attachment.uploadStatus = "error";
+          attachment.errorMessage = "图片读取失败";
+        }
       } else {
+        const blobUrl = URL.createObjectURL(file);
+        attachment.url = blobUrl;
+        attachment.uploadStatus = "success";
+      }
+
+      if (attachment.sendAsText) {
+        try {
+          const text = await readFileAsText(file);
+          attachment.content = text;
+          attachment.contentLoaded = true;
+        } catch {
+          // 读取失败也没关系，仍然作为附件处理
+          attachment.sendAsText = false;
+        }
+      }
+
+      return attachment;
+    }
+
+    async function handleBeforeUpload(file: File) {
+      const attachment = await processFile(file);
+      if (attachment) {
         attachments.value = [...attachments.value, attachment];
       }
       return false;
+    }
+
+    async function handleDirectoryChange(info: any) {
+      const files = info.fileList as any[];
+      if (!files || files.length === 0) return;
+
+      const fileObjects = files.map(f => f.originFileObj).filter(Boolean) as File[];
+
+      const newAttachments: ChatAttachment[] = [];
+      for (const file of fileObjects) {
+        const attachment = await processFile(file);
+        if (attachment) {
+          newAttachments.push(attachment);
+        }
+      }
+
+      if (newAttachments.length > 0) {
+        attachments.value = [...attachments.value, ...newAttachments];
+      }
+    }
+
+    function removeAttachment(id: string) {
+      const idx = attachments.value.findIndex((a) => a.id === id);
+      if (idx !== -1) {
+        const attachment = attachments.value[idx];
+        if (attachment.url?.startsWith("blob:")) {
+          URL.revokeObjectURL(attachment.url);
+        }
+        attachments.value = attachments.value.filter((a) => a.id !== id);
+      }
+    }
+
+    function previewImage(url: string) {
+      previewImageUrl.value = url;
+      previewImageVisible.value = true;
+    }
+
+    function previewFile(attachment: ChatAttachment) {
+      if (attachment.content) {
+      previewFileName.value = attachment.relativePath
+        ? `${attachment.relativePath}/${attachment.name}`
+        : attachment.name;
+      previewFileContent.value = attachment.content;
+      previewFileVisible.value = true;
+    }
+    }
+
+    function toggleSendAsText(attachment: ChatAttachment) {
+      attachment.sendAsText = !attachment.sendAsText;
+      attachments.value = [...attachments.value];
+    }
+
+    function renderAttachments() {
+      if (attachments.value.length === 0) return null;
+
+      return (
+        <div class="chat-input-attachments">
+          {attachments.value.map((attachment) => (
+            <div key={attachment.id} class="chat-input-attachment-item">
+              {attachment.type.startsWith("image/") && attachment.url ? (
+                <div class="chat-input-attachment-image-wrapper">
+                  <img
+                    src={attachment.url}
+                    alt={attachment.name}
+                    class="chat-input-attachment-image"
+                    onClick={() => previewImage(attachment.url!)}
+                  />
+                  <button
+                    class="chat-input-attachment-remove"
+                    onClick={() => removeAttachment(attachment.id)}
+                  >
+                    <CloseOutlined />
+                  </button>
+                  {attachment.relativePath && (
+                    <div class="chat-input-attachment-path">{attachment.relativePath}</div>
+                  )}
+                </div>
+              ) : (
+                <div class="chat-input-attachment-file">
+                  <span class="chat-input-attachment-file-icon">
+                    {getFileIcon(attachment.type, attachment.name)}
+                  </span>
+                  <div class="chat-input-attachment-file-info">
+                    <span class="chat-input-attachment-file-name">{attachment.name}</span>
+                    <span class="chat-input-attachment-file-meta">
+                      {attachment.relativePath && <span class="chat-input-attachment-path-small">{attachment.relativePath}/</span>}
+                      <span>{formatSize(attachment.size)}</span>
+                    </span>
+                  </div>
+                  <div class="chat-input-attachment-actions">
+                    {attachment.contentLoaded && (
+                      <Tooltip title={attachment.sendAsText ? "不作为文本发送" : "作为文本发送"}>
+                        <button
+                          class={["chat-input-attachment-action", attachment.sendAsText && "active"]}
+                          onClick={(e) => { e.stopPropagation(); toggleSendAsText(attachment); }}
+                        >
+                          <CodeOutlined />
+                        </button>
+                      </Tooltip>
+                    )}
+                    {attachment.content && (
+                      <Tooltip title="预览内容">
+                        <button
+                          class="chat-input-attachment-action"
+                          onClick={(e) => { e.stopPropagation(); previewFile(attachment); }}
+                        >
+                          <EyeOutlined />
+                        </button>
+                      </Tooltip>
+                    )}
+                    <button
+                      class="chat-input-attachment-remove-small"
+                      onClick={(e) => { e.stopPropagation(); removeAttachment(attachment.id); }}
+                    >
+                      <CloseOutlined />
+                    </button>
+                  </div>
+                </div>
+              )}
+              {attachment.uploadStatus === "error" && (
+                <div class="chat-input-attachment-error">{attachment.errorMessage}</div>
+              )}
+            </div>
+          ))}
+          <Modal
+            open={previewImageVisible.value}
+            footer={null}
+            onCancel={() => (previewImageVisible.value = false)}
+            width="auto"
+            centered
+            class="image-preview-modal"
+          >
+            <img src={previewImageUrl.value} style={{ maxWidth: "90vw", maxHeight: "90vh" }} />
+          </Modal>
+          <Modal
+            open={previewFileVisible.value}
+            title={previewFileName.value}
+            footer={null}
+            onCancel={() => (previewFileVisible.value = false)}
+            width={800}
+            centered
+            class="file-preview-modal"
+          >
+            <pre class="file-preview-content">{previewFileContent.value}</pre>
+          </Modal>
+        </div>
+      );
     }
 
     return () => (
       <div class="px-4 pb-6 pt-2 bg-gray-50 dark:bg-slate-900">
         <div class="max-w-5xl mx-auto">
           <div class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden">
+            {/* 已上传附件列表 */}
+            {renderAttachments()}
+
             {/* 输入框 */}
             <Textarea
               v-model:value={inputValue.value}
@@ -130,7 +390,23 @@ export default defineComponent({
                     icon={<FileTextOutlined />}
                     class="flex items-center gap-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                   >
-                    <span class="text-sm">上传文档</span>
+                    <span class="text-sm">上传文件</span>
+                  </Button>
+                </Upload>
+                <Upload
+                  directory
+                  showUploadList={false}
+                  onChange={handleDirectoryChange}
+                  // @ts-ignore - webkitdirectory 是 HTML 属性
+                  {...{ webkitdirectory: true }}
+                >
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<FolderOutlined />}
+                    class="flex items-center gap-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    <span class="text-sm">上传文件夹</span>
                   </Button>
                 </Upload>
               </div>

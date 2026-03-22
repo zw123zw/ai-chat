@@ -15,6 +15,8 @@ import {
   DeleteOutlined,
   BankOutlined,
   UploadOutlined,
+  CopyOutlined,
+  CheckOutlined,
 } from '@ant-design/icons-vue'
 import { Button, Dropdown, Modal, Form, Input, InputNumber, message, Upload, Radio } from 'ant-design-vue'
 import type { UploadProps } from 'ant-design-vue'
@@ -186,6 +188,25 @@ export default defineComponent({
       showAddAgentModal.value = false
       editingAgentId.value = null
       resetAgentForm()
+    }
+
+    const jsonCopied = ref(false)
+
+    async function handleCopyJson() {
+      const agentToCopy = editingAgentId.value
+        ? appStore.agents.find((a) => a.id === editingAgentId.value)
+        : agentForm.value
+      if (!agentToCopy) return
+
+      const jsonStr = JSON.stringify(agentToCopy, null, 2)
+      try {
+        await navigator.clipboard.writeText(jsonStr)
+        jsonCopied.value = true
+        message.success('JSON 已复制到剪贴板')
+        setTimeout(() => { jsonCopied.value = false }, 2000)
+      } catch (e) {
+        message.error('复制失败，请手动复制')
+      }
     }
 
     function handleAgentModalCancel() {
@@ -473,8 +494,26 @@ export default defineComponent({
           onOk={handleAgentModalOk}
           onCancel={handleAgentModalCancel}
           okText={editingAgentId.value ? '保存' : (importMode.value === 'batch' ? '导入' : '添加')}
-          cancelText="取消"
           width={600}
+          v-slots={{
+            footer: () => (
+              <div class="flex justify-between">
+                <div>
+                  {editingAgentId.value && (
+                    <Button onClick={handleCopyJson} icon={jsonCopied.value ? <CheckOutlined /> : <CopyOutlined />}>
+                      {jsonCopied.value ? '已复制' : '复制 JSON'}
+                    </Button>
+                  )}
+                </div>
+                <div class="flex gap-2">
+                  <Button onClick={handleAgentModalCancel}>取消</Button>
+                  <Button type="primary" onClick={handleAgentModalOk}>
+                    {editingAgentId.value ? '保存' : (importMode.value === 'batch' ? '导入' : '添加')}
+                  </Button>
+                </div>
+              </div>
+            ),
+          }}
         >
           {editingAgentId.value ? (
             <Form layout="vertical" class="mt-4">

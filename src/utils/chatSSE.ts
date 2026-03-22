@@ -1,6 +1,6 @@
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { message } from "ant-design-vue";
-import type { SSEMessage } from "@/types/chat";
+import type { SSEMessage, ChatAttachment } from "@/types/chat";
 
 /** SSE 请求配置 */
 export interface ChatSSEOptions {
@@ -43,42 +43,154 @@ function buildUrl(baseUrl: string): string {
   return `${trimmed}/v1/chat/completions`;
 }
 
-function convertToSSEMessage(msg: {
-  role: string;
-  content: string;
-  attachments?: any[];
-}): SSEMessage {
+// 将文件内容格式化为 Markdown 代码块
+function formatFileContent(attachment: ChatAttachment): string {
+  const filename = attachment.relativePath
+    ? `${attachment.relativePath}/${attachment.name}`
+    : attachment.name;
+
+  // 从文件名获取语言类型
+  let lang = "";
+  if (filename.includes('.')) {
+    const ext = filename.toLowerCase().substring(filename.lastIndexOf('.') + 1);
+    const langMap: Record<string, string> = {
+      'ts': 'typescript',
+      'tsx': 'tsx',
+      'js': 'javascript',
+      'jsx': 'jsx',
+      'py': 'python',
+      'rb': 'ruby',
+      'php': 'php',
+      'java': 'java',
+      'go': 'go',
+      'rs': 'rust',
+      'c': 'c',
+      'cpp': 'cpp',
+      'h': 'c',
+      'hpp': 'cpp',
+      'cs': 'csharp',
+      'fs': 'fsharp',
+      'swift': 'swift',
+      'kt': 'kotlin',
+      'kts': 'kotlin',
+      'scala': 'scala',
+      'sh': 'bash',
+      'bash': 'bash',
+      'zsh': 'bash',
+      'ps1': 'powershell',
+      'cmd': 'batch',
+      'bat': 'batch',
+      'sql': 'sql',
+      'html': 'html',
+      'xml': 'xml',
+      'css': 'css',
+      'scss': 'scss',
+      'sass': 'sass',
+      'less': 'less',
+      'json': 'json',
+      'yaml': 'yaml',
+      'yml': 'yaml',
+      'toml': 'toml',
+      'ini': 'ini',
+      'md': 'markdown',
+      'markdown': 'markdown',
+    };
+    lang = langMap[ext] || '';
+  }
+
+  return `\`\`\`${lang}\n${filename}\n${attachment.content}\n\`\`\`\n\n`;
+}
+
+// 构建增强的消息内容（包含文件内容）
+function buildMessageWithFiles(
+  baseContent: string,
+  attachments?: ChatAttachment[]
+): string {
+  if (!attachments || attachments.length === 0) {
+    return baseContent;
+  }
+
+  // 筛选需要作为文本发送的文件
+  const textAttachments = attachments.filter(a =>
+    a.sendAsText && a.content && a.contentLoaded
+  );
+
+  if (textAttachments.length === 0) {
+    return baseContent;
+  }
+
+  let result = "";
+
+  // 添加文件内容
+  result += "以下是上传的文件内容：\n\n";
+  for (const a of textAttachments) {
+    result += formatFileContent(a);
+  }
+
+  // 添加用户的原始问题
+  if (baseContent.trim()) {
+    result += baseContent;
+  } else {
+    result += "请根据上面的文件内容进行回复。";
+  }
+
+  return result;
+}
+
+function convertToSSEMessage(
+  msg: {
+    role: string;
+    content: string;
+    attachments?: ChatAttachment[];
+  },
+  isLastUserMessage: boolean
+): SSEMessage {
+  // 如果不是最后一条用户消息，只发送纯文本
+  if (!isLastUserMessage) {
+    return {
+      role: msg.role,
+      content: msg.content || "",
+    };
+  }
+
+  // 构建增强的内容（包含文件）
+  const enhancedContent = buildMessageWithFiles(msg.content, msg.attachments);
+
+  // 处理图片附件
+  const hasImageAttachments = msg.attachments?.some(
+    a => a.url && a.type?.startsWith("image/") && !a.url.startsWith("blob:")
+  );
+
+  if (!hasImageAttachments) {
+    return {
+      role: msg.role,
+      content: enhancedContent,
+    };
+  }
+
+  // 有图片附件，使用多模态格式
   const result: SSEMessage = {
     role: msg.role,
     content: [],
   };
 
-  if (msg.content) {
-    result.content.push({
-      type: "text",
-      text: msg.content,
-    });
-  }
+  // 添加文本内容
+  (result.content as any[]).push({
+    type: "text",
+    text: enhancedContent,
+  });
 
-  if (msg.attachments && msg.attachments.length > 0) {
-    msg.attachments.forEach((a: any) => {
-      if (a.url && a.type?.startsWith("image/")) {
-        result.content.push({
-          type: "image_url",
-          image_url: {
-            url: a.url,
-          },
-        });
-      }
-    });
-  }
-
-  if (result.content.length === 1 && result.content[0].type === "text") {
-    return {
-      role: msg.role,
-      content: (result.content[0] as any).text,
-    };
-  }
+  // 添加图片
+  msg.attachments?.forEach((a: ChatAttachment) => {
+    if (a.url && a.type?.startsWith("image/") && !a.url.startsWith("blob:")) {
+      (result.content as any[]).push({
+        type: "image_url",
+        image_url: {
+          url: a.url,
+        },
+      });
+    }
+  });
 
   return result;
 }
@@ -108,6 +220,7 @@ async function fetchChatFallback(
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => response.statusText);
+      console.error("API 错误响应:", errorText);
       throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
 
@@ -130,7 +243,7 @@ async function fetchChatFallback(
 }
 
 export const chatSSE = (
-  messages: Array<{ role: string; content: string; attachments?: any[] }>,
+  messages: Array<{ role: string; content: string; attachments?: ChatAttachment[] }>,
   onUpdate: OnUpdateCallback,
   onDone: OnDoneCallback,
   options: ChatSSEOptions,
@@ -149,7 +262,7 @@ export const chatSSE = (
   let retryCount = 0;
   let accumulatedText = "";
   let hasTriggeredFallback = false;
-  let retryTimeout: NodeJS.Timeout | null = null; // 新增：重试定时器
+  let retryTimeout: NodeJS.Timeout | null = null;
 
   const url = buildUrl(restOptions.baseUrl);
   const headers: Record<string, string> = {
@@ -158,7 +271,14 @@ export const chatSSE = (
     ...(restOptions.headers || {}),
   };
 
-  const sseMessages = messages.map(convertToSSEMessage);
+  // 找到最后一条用户消息的索引
+  const lastUserMsgIndex = [...messages].reverse().findIndex(m => m.role === 'user');
+  const actualLastUserMsgIndex = lastUserMsgIndex >= 0 ? messages.length - 1 - lastUserMsgIndex : -1;
+
+  // 转换消息：只有最后一条用户消息才处理附件和文件内容
+  const sseMessages = messages.map((msg, index) =>
+    convertToSSEMessage(msg, index === actualLastUserMsgIndex)
+  );
 
   const baseBody: Record<string, unknown> = {
     model: restOptions.model,
@@ -173,16 +293,19 @@ export const chatSSE = (
   if (restOptions.frequencyPenalty !== undefined)
     baseBody.frequency_penalty = restOptions.frequencyPenalty;
 
+  // 打印调试信息
+  console.log("📤 发送请求到:", url);
+  console.log("📤 请求 body:", JSON.stringify(baseBody, null, 2));
+
   const finish = (success: boolean = false) => {
     if (isDone) return;
     isDone = true;
-    // 新增：清除未执行的重试定时器，阻止后续重试
     if (retryTimeout) clearTimeout(retryTimeout);
     onDone(success);
   };
 
   const executeSSE = () => {
-    if (aborted || hasTriggeredFallback || isDone) return; // 新增：isDone 判断
+    if (aborted || hasTriggeredFallback || isDone) return;
 
     currentController = new AbortController();
     const signal = currentController.signal;
@@ -246,9 +369,15 @@ export const chatSSE = (
       },
       onopen: async (response) => {
         if (response.status !== 200) {
-          // 新增：非200状态码直接触发重试，不再让内部逻辑处理
+          let errorDetail = "";
+          try {
+            errorDetail = await response.text();
+            console.error("API 错误响应详情:", errorDetail);
+          } catch {
+            errorDetail = response.statusText;
+          }
           currentController?.abort();
-          handleRetry(new Error(`SSE 连接失败，状态码：${response.status}`));
+          handleRetry(new Error(`SSE 连接失败，状态码：${response.status}，详情：${errorDetail}`));
           return;
         }
         retryCount = 0;
@@ -257,6 +386,7 @@ export const chatSSE = (
       if (aborted || isDone) return;
 
       const error = err as Error;
+      console.error("fetchEventSource catch:", error);
       if (enableFetchFallback && !hasTriggeredFallback) {
         hasTriggeredFallback = true;
         const fallbackBody = { ...baseBody, stream: false };
@@ -278,7 +408,6 @@ export const chatSSE = (
   const handleRetry = (error: Error) => {
     if (aborted || isDone) return;
 
-    // 对于网络错误（Failed to fetch、网络连接错误），直接失败不重试
     const isNetworkError =
       error.message?.includes("Failed to fetch") ||
       error.message?.includes("NetworkError") ||
@@ -311,12 +440,10 @@ export const chatSSE = (
   };
 
   const handleFinalError = (error: Error) => {
-    // 优化1：确保错误信息有默认值，且去掉多余换行（避免前端过滤）
     const errorDetail = error.message || "网络异常/服务器无响应";
     const errorMsg = `AI 回复失败：${errorDetail}`;
     console.error("SSE 最终失败", errorMsg, error);
     message.error(errorMsg);
-    // 如果累加文本为空，直接显示错误信息；否则拼接
     const finalText = accumulatedText || errorMsg;
     onUpdate(finalText);
     finish(false);
@@ -328,7 +455,6 @@ export const chatSSE = (
     if (aborted) return;
 
     aborted = true;
-    // 新增：清除重试定时器
     if (retryTimeout) clearTimeout(retryTimeout);
     currentController?.abort();
     finish(false);

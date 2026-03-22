@@ -559,6 +559,151 @@ textarea.ant-input {
   opacity: 0.6;
 }
 
+.msg-attach-image-wrapper {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  border-radius: 8px;
+  overflow: hidden;
+
+  &:hover .msg-attach-image-overlay {
+    opacity: 1;
+  }
+}
+
+.msg-attach-image-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background-color: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.msg-attach-file {
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: var(--hover-bg-strong);
+  }
+}
+
+.msg-attach-file-download {
+  margin-left: auto;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+// ==================== ChatInput 附件展示 ====================
+.chat-input-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 16px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.chat-input-attachment-item {
+  position: relative;
+}
+
+.chat-input-attachment-image-wrapper {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: var(--hover-bg);
+
+  &:hover .chat-input-attachment-remove {
+    opacity: 1;
+  }
+}
+
+.chat-input-attachment-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  cursor: pointer;
+}
+
+.chat-input-attachment-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 32px 8px 10px;
+  background-color: var(--hover-bg);
+  border-radius: 8px;
+  max-width: 240px;
+  position: relative;
+
+  &:hover .chat-input-attachment-remove {
+    opacity: 1;
+  }
+}
+
+.chat-input-attachment-file-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.chat-input-attachment-file-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.chat-input-attachment-file-name {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-input-attachment-file-size {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.chat-input-attachment-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+  font-size: 12px;
+  z-index: 1;
+
+  &:hover {
+    background-color: @error-color;
+    opacity: 1;
+  }
+}
+
+.chat-input-attachment-error {
+  font-size: 11px;
+  color: @error-color;
+  margin-top: 4px;
+}
+
 // 附件预览
 .attachment-preview {
   position: relative;
@@ -870,4 +1015,148 @@ textarea.ant-input {
   to {
     transform: rotate(360deg);
   }
+}
+
+// ==================== ChatInput 附件增强样式 ====================
+.chat-input-attachment-file-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.chat-input-attachment-path-small {
+  opacity: 0.6;
+  font-size: 10px;
+}
+
+.chat-input-attachment-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.chat-input-attachment-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+
+  &:hover {
+    opacity: 1;
+    background-color: var(--hover-bg-strong);
+  }
+
+  &.active {
+    color: @primary-color;
+    opacity: 1;
+    background-color: var(--primary-fade-12);
+  }
+}
+
+.chat-input-attachment-remove-small {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+  font-size: 12px;
+
+  .chat-input-attachment-file:hover & {
+    opacity: 1;
+  }
+
+  &:hover {
+    background-color: @error-color;
+  }
+}
+
+// 文件预览模态框
+.file-preview-modal {
+  .ant-modal-body {
+    max-height: 70vh;
+    overflow: auto;
+  }
+}
+
+.file-preview-content {
+  margin: 0;
+  padding: 12px;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  border-radius: 8px;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 60vh;
+  overflow: auto;
+}
+
+// ==================== ChatMessage 附件增强样式 ====================
+.msg-attach-file-path {
+  font-size: 11px;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.msg-attach-file-code-icon {
+  margin-right: 4px;
+  font-size: 12px;
+}
+
+.msg-attach-file-preview {
+  margin-left: auto;
+  flex-shrink: 0;
+  opacity: 0.6;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  transition: all 0.2s;
+
+  &:hover {
+    opacity: 1;
+    background-color: var(--hover-bg-strong);
+  }
+}
+
+// 文件夹相关样式
+.folder-upload-btn {
+  // 文件夹上传按钮样式
+}
+
+.attachment-folder-item {
+  // 文件夹项样式
+}
+
+.attachment-folder-header {
+  // 文件夹头部样式
+}
+
+.attachment-folder-children {
+  // 文件夹子项样式
+  margin-left: 20px;
 }
