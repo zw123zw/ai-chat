@@ -18,8 +18,9 @@ import {
   FileWordOutlined,
   FileExcelOutlined,
 } from '@ant-design/icons-vue'
-import { Spin, Tooltip, Modal } from 'ant-design-vue'
+import { Spin, Tooltip, Modal, message } from 'ant-design-vue'
 import { copyTextSilent } from '@/utils/clipboard'
+import { getAttachment } from '@/utils/attachmentStorage'
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return bytes + ' B'
@@ -58,28 +59,72 @@ function dataURLtoBlob(dataurl: string): Blob {
   return new Blob([u8arr], { type: mime })
 }
 
-function downloadAttachment(attachment: ChatAttachment) {
-  if (!attachment.url) return
+async function downloadAttachment(attachment: ChatAttachment) {
+  const hide = message.loading('正在准备下载...', 0)
 
-  let url = attachment.url
-  let revokeUrl = false
+  try {
+    // 1. 优先尝试从 IndexedDB 获取（所有类型文件）
+    const blob = await getAttachment(attachment.id)
+    if (blob) {
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = attachment.name
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      return
+    }
 
-  // 如果是 data URL，转换为 blob URL 以便下载
-  if (url.startsWith('data:')) {
-    const blob = dataURLtoBlob(url)
-    url = URL.createObjectURL(blob)
-    revokeUrl = true
-  }
+    // 2. 使用 content（文本文件备用方案）
+    if (attachment.content) {
+      const contentBlob = new Blob([attachment.content], { type: attachment.type || 'text/plain' })
+      const url = URL.createObjectURL(contentBlob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = attachment.name
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      return
+    }
 
-  const a = document.createElement('a')
-  a.href = url
-  a.download = attachment.name
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
+    // 3. 使用 data URL（图片备用方案）
+    if (attachment.url?.startsWith('data:')) {
+      const dataBlob = dataURLtoBlob(attachment.url)
+      const url = URL.createObjectURL(dataBlob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = attachment.name
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      return
+    }
 
-  if (revokeUrl) {
-    URL.revokeObjectURL(url)
+    // 4. 尝试 blob URL（仅当前会话有效）
+    if (attachment.url?.startsWith('blob:')) {
+      try {
+        const a = document.createElement('a')
+        a.href = attachment.url
+        a.download = attachment.name
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        return
+      } catch {
+        // Blob URL 已失效
+      }
+    }
+
+    // 5. 所有方式都失败，提示用户
+    console.warn('无法下载文件：文件数据已失效', attachment.name)
+    message.error(`无法下载 "${attachment.name}"：文件数据已失效，请重新上传文件。`)
+  } finally {
+    hide()
   }
 }
 
@@ -236,9 +281,14 @@ export default defineComponent({
                       </span>
                     </Tooltip>
                   )}
-                  <span class="msg-attach-file-download" onClick={() => downloadAttachment(a)}>
-                    <DownloadOutlined />
-                  </span>
+                  <Tooltip title="下载文件">
+                    <span class="msg-attach-file-download" onClick={(e) => {
+                      e.stopPropagation()
+                      downloadAttachment(a)
+                    }}>
+                      <DownloadOutlined />
+                    </span>
+                  </Tooltip>
                 </div>
               ))}
             </div>

@@ -3,6 +3,7 @@ import { nanoid } from "@/utils/id";
 import { chatSSE, type AbortFn } from "@/utils/chatSSE";
 import { useAppStore } from "@/store/modules/app";
 import type { ChatMessage, Conversation, ChatAttachment } from "@/types/chat";
+import { getAllAttachmentIds, removeAttachments, clearAllAttachments } from "@/utils/attachmentStorage";
 
 interface ChatState {
   conversations: Conversation[];
@@ -53,6 +54,20 @@ export const useChatStore = defineStore("chat", {
     DELETE_CONVERSATION(id: string) {
       // 删除前停止当前 SSE
       this.STOP_GENERATING();
+      // 收集要删除的会话中的所有附件 ID
+      const conversation = this.conversations.find((c) => c.id === id);
+      if (conversation) {
+        const attachmentIds: string[] = [];
+        conversation.messages.forEach((msg) => {
+          if (msg.attachments) {
+            msg.attachments.forEach((a) => attachmentIds.push(a.id));
+          }
+        });
+        // 从 IndexedDB 删除附件
+        if (attachmentIds.length > 0) {
+          removeAttachments(attachmentIds).catch(console.error);
+        }
+      }
       this.conversations = this.conversations.filter((c) => c.id !== id);
       if (this.currentConversationId === id) {
         this.currentConversationId = this.conversations[0]?.id || null;
@@ -61,6 +76,8 @@ export const useChatStore = defineStore("chat", {
     CLEAR_ALL_CONVERSATIONS() {
       this.conversations = [];
       this.currentConversationId = null;
+      // 清空所有附件
+      clearAllAttachments().catch(console.error);
     },
     RENAME_CONVERSATION(id: string, title: string) {
       this.conversations = this.conversations.map((c) =>
@@ -204,6 +221,34 @@ export const useChatStore = defineStore("chat", {
       });
 
       this.SEND_MESSAGE(lastUserMsg.content);
+    },
+    /**
+     * 清理孤立的附件（IndexedDB 中存在但消息中不再引用的附件）
+     */
+    async CLEANUP_ORPHANED_ATTACHMENTS() {
+      try {
+        // 收集所有消息中引用的附件 ID
+        const referencedAttachmentIds = new Set<string>();
+        this.conversations.forEach((conv) => {
+          conv.messages.forEach((msg) => {
+            if (msg.attachments) {
+              msg.attachments.forEach((a) => referencedAttachmentIds.add(a.id));
+            }
+          });
+        });
+
+        // 获取所有存储的附件 ID
+        const storedIds = await getAllAttachmentIds();
+
+        // 找出孤立的附件并删除
+        const orphanedIds = storedIds.filter((id) => !referencedAttachmentIds.has(id));
+        if (orphanedIds.length > 0) {
+          console.log(`Cleaning up ${orphanedIds.length} orphaned attachments`);
+          await removeAttachments(orphanedIds);
+        }
+      } catch (err) {
+        console.error('Failed to cleanup orphaned attachments:', err);
+      }
     },
   },
   persist: {

@@ -33,7 +33,8 @@
       "Bash(rm .claude/skills/skill-generator.md)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(yarn lint:*)"
+      "Bash(yarn lint:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

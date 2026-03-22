@@ -599,6 +599,18 @@ textarea.ant-input {
   margin-left: auto;
   flex-shrink: 0;
   opacity: 0.6;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    opacity: 1;
+    background-color: var(--hover-bg-strong);
+  }
 }
 
 // ==================== ChatInput 附件展示 ====================
@@ -606,7 +618,7 @@ textarea.ant-input {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 8px 16px 0;
+  padding: 8px 16px 12px;
   border-bottom: 1px solid var(--border-color);
 }
 

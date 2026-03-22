@@ -16,6 +16,7 @@ import {
 } from "@ant-design/icons-vue";
 import type { ChatAttachment } from "@/types/chat";
 import { nanoid } from "@/utils/id";
+import { saveAttachment, removeAttachment as removeAttachmentFromStorage } from "@/utils/attachmentStorage";
 
 // 文本/代码文件扩展名列表
 const TEXT_EXTENSIONS = new Set([
@@ -103,6 +104,7 @@ export default defineComponent({
     const previewFileName = ref("");
 
     onUnmounted(() => {
+      // 组件卸载时清理 blob URL
       attachments.value.forEach((a) => {
         if (a.url?.startsWith("blob:")) URL.revokeObjectURL(a.url);
       });
@@ -118,10 +120,19 @@ export default defineComponent({
       if (!canSend.value) return;
 
       const content = inputValue.value.trim();
-      const attachmentsToClear =
-        attachments.value.length > 0 ? [...attachments.value] : undefined;
+      // 发送附件时，图片保留 data URL 用于预览（历史消息预览）
+      const attachmentsToClear = attachments.value.length > 0
+        ? attachments.value.map(a => {
+            if (a.type.startsWith("image/")) {
+              return { ...a };
+            }
+            // 非图片文件：url 只用于当前会话预览，发送时保留 id 用于从 IndexedDB 读取
+            return { ...a, url: undefined };
+          })
+        : undefined;
 
       inputValue.value = "";
+      // 清理 blob URL
       attachments.value.forEach((a) => {
         if (a.url?.startsWith("blob:")) URL.revokeObjectURL(a.url);
       });
@@ -159,19 +170,34 @@ export default defineComponent({
         contentLoaded: false,
       };
 
-      if (file.type.startsWith("image/")) {
-        try {
-          const url = await readFileAsDataUrl(file);
-          attachment.url = url;
-          attachment.uploadStatus = "success";
-        } catch {
-          attachment.uploadStatus = "error";
-          attachment.errorMessage = "图片读取失败";
+      try {
+        // 保存文件到 IndexedDB
+        await saveAttachment(attachment.id, file);
+
+        // 图片需要 data URL 用于预览
+        if (file.type.startsWith("image/")) {
+          attachment.url = await readFileAsDataUrl(file);
+        } else {
+          // 其他文件用 blob URL 用于预览（当前会话有效）
+          attachment.url = URL.createObjectURL(file);
         }
-      } else {
-        const blobUrl = URL.createObjectURL(file);
-        attachment.url = blobUrl;
+
+        // 文本文件同时读取 content
+        if (isTextFile(name)) {
+          try {
+            const text = await readFileAsText(file);
+            attachment.content = text;
+            attachment.contentLoaded = true;
+          } catch {
+            // 读取失败也没关系，仍然作为附件处理
+            attachment.sendAsText = false;
+          }
+        }
+
         attachment.uploadStatus = "success";
+      } catch {
+        attachment.uploadStatus = "error";
+        attachment.errorMessage = "文件读取失败";
       }
 
       if (attachment.sendAsText) {
@@ -219,9 +245,12 @@ export default defineComponent({
       const idx = attachments.value.findIndex((a) => a.id === id);
       if (idx !== -1) {
         const attachment = attachments.value[idx];
+        // 清理 blob URL
         if (attachment.url?.startsWith("blob:")) {
           URL.revokeObjectURL(attachment.url);
         }
+        // 从 IndexedDB 删除
+        removeAttachmentFromStorage(id).catch(console.error);
         attachments.value = attachments.value.filter((a) => a.id !== id);
       }
     }
